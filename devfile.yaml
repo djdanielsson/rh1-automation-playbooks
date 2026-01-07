@@ -1,0 +1,46 @@
+schemaVersion: 2.2.0
+metadata:
+  name: automation-playbooks
+  version: 1.0.0
+  description: Development environment for automation playbooks
+  tags:
+    - ansible
+    - automation
+    - playbooks
+  architectures:
+    - amd64
+  languages:
+    - yaml
+
+components:
+  - name: tooling-container
+    container:
+      image: quay.io/devfile/universal-developer-image:ubi8-latest
+      memoryLimit: 1024Mi
+      memoryRequest: 256Mi
+      cpuLimit: 500m
+      cpuRequest: 100m
+      endpoints:
+        - name: http
+          targetPort: 8080
+          exposure: none
+      env:
+        - name: ANSIBLE_CONFIG
+          value: /projects/ansible.cfg
+      mountSources: true
+
+commands:
+  - id: install-dependencies
+    exec:
+      component: tooling-container
+      commandLine: pip install ansible ansible-lint yamllint
+
+  - id: validate-playbooks
+    exec:
+      component: tooling-container
+      commandLine: ./scripts/validate-playbooks.sh
+
+  - id: test-playbooks
+    exec:
+      component: tooling-container
+      commandLine: ./scripts/test-playbooks.sh

@@ -1,0 +1,40 @@
+---
+# deploy-webapp.yml
+# Deploy web application using the webserver role from custom collection
+
+- name: Deploy Web Application
+  hosts: webservers
+  gather_facts: true
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - app_name is defined
+          - app_source is defined
+        fail_msg: "Required variables app_name and app_source must be defined"
+
+  roles:
+    - role: myorg.custom_collection.webserver_deploy
+      vars:
+        app_name: "{{ app_name }}"
+        app_source: "{{ app_source }}"
+        app_port: "{{ app_port | default(8080) }}"
+        app_config_path: "{{ app_config_path | default('/etc/httpd/conf.d') }}"
+
+  post_tasks:
+    - name: Verify deployment
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:{{ app_port }}"
+        status_code: 200
+      register: health_check
+      until: health_check.status == 200
+      retries: 5
+      delay: 10
+
+    - name: Deployment summary
+      ansible.builtin.debug:
+        msg: |
+          Application {{ app_name }} deployed successfully!
+          URL: http://{{ ansible_host }}:{{ app_port }}
+          Source: {{ app_source }}

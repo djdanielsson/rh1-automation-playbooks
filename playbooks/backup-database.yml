@@ -1,0 +1,44 @@
+---
+# backup-database.yml
+# Perform database backup using the database_backup role
+
+- name: Database Backup Automation
+  hosts: database_servers
+  gather_facts: true
+
+  pre_tasks:
+    - name: Validate database connection
+      ansible.builtin.assert:
+        that:
+          - db_host is defined
+          - db_name is defined
+          - db_user is defined
+        fail_msg: "Database connection variables must be defined"
+
+  roles:
+    - role: myorg.custom_collection.database_backup
+      vars:
+        db_host: "{{ db_host }}"
+        db_name: "{{ db_name }}"
+        db_user: "{{ db_user }}"
+        backup_dir: "{{ backup_dir | default('/var/backups') }}"
+        encryption_key: "{{ encryption_key }}"
+        s3_bucket: "{{ s3_bucket | default(omit) }}"
+        retention_days: "{{ retention_days | default(30) }}"
+
+  post_tasks:
+    - name: Verify backup file exists
+      ansible.builtin.stat:
+        path: "{{ backup_dir }}/{{ db_name }}_{{ ansible_date_time.iso8601 }}.backup.enc"
+      register: backup_file
+      failed_when: not backup_file.stat.exists
+
+    - name: Backup summary
+      ansible.builtin.debug:
+        msg: |
+          Database backup completed successfully!
+          Database: {{ db_name }}
+          Backup file: {{ backup_dir }}/{{ db_name }}_{{ ansible_date_time.iso8601 }}.backup.enc
+          Size: {{ backup_file.stat.size }} bytes
+          Encrypted: yes
+          {% if s3_bucket is defined %}Uploaded to S3: {{ s3_bucket }}{% endif %}
