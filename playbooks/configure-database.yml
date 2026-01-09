@@ -1,0 +1,48 @@
+---
+# configure-database.yml
+# Configure PostgreSQL database using the database role from custom collection
+
+- name: Configure PostgreSQL Database
+  hosts: databases
+  gather_facts: true
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - database_name is defined
+          - database_user is defined
+        fail_msg: "Required variables database_name and database_user must be defined"
+        quiet: true
+
+  roles:
+    - role: myorg.custom_collection.database
+      vars:
+        database_name: "{{ database_name }}"
+        database_user: "{{ database_user }}"
+        database_password: "{{ database_password | default(omit) }}"
+        database_port: "{{ database_port | default(5432) }}"
+        database_max_connections: "{{ database_max_connections | default(100) }}"
+        database_configure_firewall: "{{ database_configure_firewall | default(false) }}"
+
+  post_tasks:
+    - name: Verify PostgreSQL is running
+      ansible.builtin.service_facts:
+
+    - name: Assert PostgreSQL service is active
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['postgresql.service'] is defined
+          - ansible_facts.services['postgresql.service'].state == 'running'
+        fail_msg: "PostgreSQL service is not running"
+        quiet: true
+
+    - name: Configuration summary
+      ansible.builtin.debug:
+        msg: |
+          PostgreSQL database configured successfully!
+          Database: {{ database_name }}
+          User: {{ database_user }}
+          Port: {{ database_port | default(5432) }}
+          Host: {{ ansible_host }}
+...

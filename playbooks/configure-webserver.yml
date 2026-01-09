@@ -1,0 +1,33 @@
+---
+# configure-webserver.yml
+# Configure Apache web server using the webserver role from custom collection
+
+- name: Configure Web Server
+  hosts: webservers
+  gather_facts: true
+
+  pre_tasks:
+    - name: Display webserver configuration parameters
+      ansible.builtin.debug:
+        msg: |
+          Configuring web server with:
+          Port: {{ webserver_port | default(80) }}
+          Document Root: {{ webserver_document_root | default('/var/www/html') }}
+
+  roles:
+    - role: myorg.custom_collection.webserver
+      vars:
+        webserver_port: "{{ webserver_port | default(80) }}"
+        webserver_document_root: "{{ webserver_document_root | default('/var/www/html') }}"
+        webserver_server_admin: "{{ webserver_server_admin | default('admin@example.com') }}"
+        webserver_configure_firewall: "{{ webserver_configure_firewall | default(true) }}"
+        webserver_verify_response: "{{ webserver_verify_response | default(true) }}"
+
+  post_tasks:
+    - name: Web server configuration summary
+      ansible.builtin.debug:
+        msg: |
+          Web server configured successfully!
+          URL: http://{{ ansible_host }}:{{ webserver_port | default(80) }}
+          Document Root: {{ webserver_document_root | default('/var/www/html') }}
+...

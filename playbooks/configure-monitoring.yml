@@ -1,0 +1,26 @@
+---
+# configure-monitoring.yml
+# Configure monitoring agents using the monitoring role from custom collection
+
+- name: Configure Monitoring
+  hosts: all
+  gather_facts: true
+
+  pre_tasks:
+    - name: Display monitoring configuration
+      ansible.builtin.debug:
+        msg: "Configuring monitoring on {{ inventory_hostname }}"
+
+  roles:
+    - role: myorg.custom_collection.monitoring
+      vars:
+        my_variable: "{{ monitoring_config | default('default_monitoring') }}"
+
+  post_tasks:
+    - name: Monitoring configuration summary
+      ansible.builtin.debug:
+        msg: |
+          Monitoring configured successfully!
+          Host: {{ ansible_host }}
+          Hostname: {{ inventory_hostname }}
+...
