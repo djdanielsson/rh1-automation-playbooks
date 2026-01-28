@@ -4,7 +4,7 @@
 
 - name: Deploy Web Application
   hosts: webservers
-  gather_facts: true
+  gather_facts: false
 
   pre_tasks:
     - name: Validate required variables
