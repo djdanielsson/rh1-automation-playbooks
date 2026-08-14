@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: automation-playbooks-pr-policy
+  annotations:
+    pipelinesascode.tekton.dev/task-1: "[git-clone]"
+    pipelinesascode.tekton.dev/task-2: "https://raw.githubusercontent.com/djdanielsson/rh1-cluster-config/refs/heads/main/tekton-tasks/apme-policy-check-task.yml"
+    pipelinesascode.tekton.dev/on-event: "[pull_request]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+spec:
+  workspaces:
+  - name: shared-workspace
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  - name: apme-policies
+    configMap:
+      name: apme-org-policies
+  pipelineSpec:
+    workspaces:
+    - name: shared-workspace
+    - name: apme-policies
+    tasks:
+      - name: fetch-source
+        taskRef:
+          name: git-clone
+        params:
+        - name: url
+          value: "{{ repo_url }}"
+        - name: revision
+          value: "{{ revision }}"
+        - name: verbose
+          value: "true"
+        workspaces:
+        - name: output
+          workspace: shared-workspace
+
+      - name: apme-policy-check
+        runAfter:
+        - fetch-source
+        taskRef:
+          name: apme-policy-check
+        workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: policies
+          workspace: apme-policies
